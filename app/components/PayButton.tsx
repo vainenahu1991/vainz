@@ -1,83 +1,80 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useCart } from "./CartProvider";
 
 type CheckoutItem = {
   id: string;
   name: string;
-  price: number; // dollars
-  quantity: number;
+  unitPrice: number; // NZD dollars
+  qty: number;
 };
 
 export default function PayButton() {
-  const { items, subtotal } = useCart();
+  const { items } = useCart(); // <-- this is what fixes "Cannot find name 'cart'"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const disabled = loading || items.length === 0;
+  const hasItems = Array.isArray(items) && items.length > 0;
 
-  async function handleCheckout() {
+  const handleCheckout = async () => {
     setError(null);
-    setLoading(true);
+
+    if (!hasItems) {
+      setError("Your cart is empty.");
+      return;
+    }
+
+    // Convert cart items into what /api/checkout expects
+    const payloadItems: CheckoutItem[] = items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      unitPrice: i.unitPrice,
+      qty: i.qty,
+    }));
 
     try {
-      const payload = {
-        items: items.map<CheckoutItem>((i) => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity,
-        })),
-      };
+      setLoading(true);
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ items: payloadItems }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(data?.error || "Checkout failed.");
+        setError(data?.error || "Checkout failed. Please try again.");
+        return;
       }
 
-      // route.ts should return { url: "https://checkout.stripe.com/..." }
-      if (!data?.url) {
-        throw new Error("No checkout URL returned from server.");
+      if (data?.url) {
+        window.location.href = data.url; // Stripe Checkout URL
+        return;
       }
 
-      window.location.href = data.url;
+      setError("Checkout failed (missing redirect URL).");
     } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
+      setError(e?.message || "Checkout failed. Please try again.");
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+    <div style={{ display: "grid", gap: 10 }}>
       <button
+        className="btn btnGold"
         onClick={handleCheckout}
-        disabled={disabled}
-        style={{
-          padding: "14px 18px",
-          borderRadius: 12,
-          border: "1px solid rgba(0,0,0,0.12)",
-          cursor: disabled ? "not-allowed" : "pointer",
-          fontWeight: 700,
-          fontSize: 16,
-        }}
+        disabled={!hasItems || loading}
+        aria-busy={loading}
       >
-        {loading
-          ? "Redirecting…"
-          : items.length === 0
-          ? "Cart is empty"
-          : `Checkout — $${subtotal.toFixed(2)}`}
+        {loading ? "Redirecting…" : "Checkout"}
       </button>
 
       {error ? (
-        <div style={{ color: "crimson", fontSize: 14 }}>{error}</div>
+        <p style={{ margin: 0, color: "crimson", fontWeight: 600 }}>{error}</p>
       ) : null}
     </div>
   );
