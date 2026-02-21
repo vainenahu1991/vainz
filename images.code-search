@@ -1,0 +1,26 @@
+# Query: images
+# ContextLines: 1
+
+6 results - 3 files
+
+next.config.ts:
+  3  const nextConfig: NextConfig = {
+  4:   images: {
+  5      remotePatterns: [
+  6:       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+  7      ],
+
+app\page.tsx:
+  4  const HERO_IMAGE =
+  5:   "https://images.unsplash.com/photo-1555244162-803834f70033?w=1920&q=80";
+  6  const DESSERTS_IMAGE =
+  7: "/images/cakesicles.png";
+  8  const BOARDS_IMAGE =
+  9:   "/images/charcuterie.png";
+  10  
+
+app\charcuterie\page.tsx:
+  6  const BOARD_IMAGE =
+  "/images/charcuterie-board-2.png";
+
+  8  
