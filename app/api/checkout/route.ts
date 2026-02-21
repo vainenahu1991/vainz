@@ -19,9 +19,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ Create Stripe INSIDE the handler (prevents that weird type-lock)
-    const stripe = new Stripe(secretKey, {
-      apiVersion: "2024-06-20",
-    });
+    const stripe = new Stripe(secretKey);
 
     const body = await req.json();
     const items: CartItem[] = Array.isArray(body?.items) ? body.items : [];
